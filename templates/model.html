@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Model{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <h1 class="text-4xl font-bold mb-4">Model</h1>
+      <form method="POST">
+        <div class="mb-3">
+          <label for="user" class="form-label">User:</label>
+          <input type="text" id="user" name="user" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label for="gender" class="form-label">Gender:</label><br>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="gender" id="gender-m" value="m">
+            <label class="form-check-label" for="gender-m">Male</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="gender" id="gender-f" value="f">
+            <label class="form-check-label" for="gender-f">Female</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="gender" id="gender-none" value="">
+            <label class="form-check-label" for="gender-none">Non communiqué</label>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label for="country" class="form-label">Country:</label>
+          <select id="country" name="country" class="form-control">
+            {% for p in pays %}
+            <option value="{{ p }}">{{ p }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="level_of_education" class="form-label">Niveau d'education:</label>
+          <select id="level_of_education" name="level_of_education" class="form-control">
+            {% for l in level_educ %}
+            <option value="{{ l }}">{{ l }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="delai_1er_post" class="form-label">Delai par rapport au 1er post : (en nombre de jours)</label>
+          <input type="number" id="delai_1er_post" min=0 name="delai_1er_post" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label for="nb_threads" class="form-label">Nombres de messages Threads:</label>
+          <input type="number" id="nb_threads" min=0 name="nb_threads" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label for="nb_comments" class="form-label">Nombres de messages Comments:</label>
+          <input type="number" id="nb_comments" min=0 name="nb_comments" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label for="concat_bodys" class="form-label">Corpus: (Veuillez afficher une concaténation de tous les messages)</label>
+          <textarea id="concat_bodys" name="concat_bodys" class="form-control"></textarea>
+        </div>
+        <div class="mb-3">
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% if prediction %}
+<div class="my-8 justify-content-center">
+<h2 class="text-2xl font-bold mb-4 text-center">Prediction Result</h2>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<h2 class="font-weight-normal text-center"><strong>Votre résultat:</strong> {{ prediction }} pour la sélection suivante:</h2>
+<div class="table row justify-content-center">{{ table|safe }}</div>
+</div>
+</div>
+</div>
+{% endif %}
+
+{% endblock %}

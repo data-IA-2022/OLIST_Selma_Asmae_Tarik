@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Analyse{% endblock %}
+
+{% block content %}
+
+<h1 class="text-4xl font-bold">Analyse</h1>
+<div class="plot_user_per_mooc">
+    {{ plot | safe }}
+</div>
+<h2 class="text-4xl font-bold">Taux de succés par cours en fonction du genre des apprenants</h2>
+<div class="subplot_gender">
+    {{ subplot | safe }}
+</div>
+<div class="piechart_users_gender">
+    {{ piechart_user_gender | safe }}   
+</div>
+<div class="piechart_user_pays">
+    {{ piechart_user_pays | safe }}  
+</div>
+<div class="piechart_user_lvleduc">
+    {{ piechart_user_lvl | safe }}
+</div>
+<div class="barchart_user_success">
+    {{ barchart_user_mooc_success | safe }}   
+</div>
+<div class="barchart_user_message">
+    {{ barchart_user_message | safe }} 
+</div>
+<div class="scatter_mess_success">
+    {{ scatter_mess_success | safe }}
+</div>
+{% endblock %}
