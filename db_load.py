@@ -41,16 +41,16 @@ conn_pgsql_datalab = db_con.connect_to_db(config_file='config.yaml', section='pg
     
 # création d'une table geolocalisation à partir de tout les zipcode unique dans toutes les tables
 
-# list_zipcode = conn_pgsql_datalab.execute("""SELECT DISTINCT zip_code_prefix
-# FROM (
-#   SELECT customer_zip_code_prefix AS zip_code_prefix
-#   FROM olist_customers
-#   UNION
-#   SELECT seller_zip_code_prefix AS zip_code_prefix
-#   FROM olist_sellers
-# ) AS all_zip_codes""")
+df = pd.read_sql("""SELECT DISTINCT zip_code_prefix, city
+FROM (
+  SELECT DISTINCT customer_zip_code_prefix AS zip_code_prefix , customer_city AS city
+  FROM olist_customers
+  UNION
+  SELECT DISTINCT seller_zip_code_prefix AS zip_code_prefix, seller_city AS city
+  FROM olist_sellers
+) AS all_zip_codes""", conn_pgsql_datalab)
 
-# print(list_zipcode)
+print(df.head(3))
 
 # # execute the SQL query and read the result into a pandas DataFrame
 # df = pd.read_sql("""
@@ -70,18 +70,20 @@ conn_pgsql_datalab = db_con.connect_to_db(config_file='config.yaml', section='pg
 
 # context = ssl.create_default_context(cafile=certifi.where())
 # # create a geolocator object
-# locator = Nominatim(user_agent="google", ssl_context=context)
+# locator = Nominatim(user_agent="google", ssl_context=context, timeout=3)
 
 # # iterate over the rows of the DataFrame
 # for index, row in df.iterrows():
 #     # get the zip code from the current row
-#     zip_code = row['seller_zip_code_prefix']
-    
+#     zip_code = row['zip_code_prefix']
+#     city = row['city']
+#     print("zip_code_recherché: ",zip_code, "city_recherché: ", city)
 #     # geocode the zip code
 #     location = locator.geocode(f"{zip_code}, Brazil")
     
 #     # if location is not None and is a Location object, extract latitude, longitude, city, and state and add them to the DataFrame
 #     if location is not None and type(location) == geopy.location.Location:
+#         print(location.raw)
 #         latitude = location.latitude
 #         longitude = location.longitude
 #         city = location.raw.get('address', {}).get('city')
@@ -96,8 +98,12 @@ conn_pgsql_datalab = db_con.connect_to_db(config_file='config.yaml', section='pg
 #     print(f"Location: {location}")
         
 # # print the final DataFrame
-# print(df[])
+# print(df)
 
+
+########################################## Maj de la Table product_category_name_translation ajout trad french ########################################################
+
+#Lecture de la table actuelle
 traduction_df = pd.read_sql("""
 select *
 from product_category_name_translation T;
@@ -106,16 +112,18 @@ from product_category_name_translation T;
 # print the resulting DataFrame
 print(traduction_df.head(3))
 
+# Création d'une nouvelle Df product_traduction_df que l'on parrcoura pour maj la table sql 
 product_traduction_df = pd.read_sql("""
 select distinct(product_category_name)
 from olist_products P;
 """, conn_pgsql_datalab)
-product_traduction_df= product_traduction_df.apply(lambda x: x.replace("_"," ")
+
+
 # print the resulting DataFrame
-print(product_traduction_df.head(3))
+print(product_traduction_df['product_category_name'].head(3))
 
 
-print("-----------------------------------------------------------------")
+print("--------------------------- Utilisation API traduction --------------------------------------")
 
 # Initialize the translator
 translator = Translator(service_urls=['translate.google.com'])
@@ -135,10 +143,40 @@ def get_french_translation(text):
         return translator.translate(text, dest='fr').text
 
 # Add the translation columns to the dataframe
-product_traduction_df['product_category_name_english'] = product_traduction_df['product_category_name'].apply(get_english_translation)
-product_traduction_df['product_category_name_french'] = product_traduction_df['product_category_name'].apply(get_french_translation)
+product_traduction_df['product_category_name_english'] = product_traduction_df['product_category_name'].str.replace("_", " ").apply(get_english_translation).str.replace(" ", "_")
+product_traduction_df['product_category_name_french'] = product_traduction_df['product_category_name'].str.replace("_", " ").apply(get_french_translation).str.replace(" ", "_")
 
 # Print the updated dataframe
 
-print(product_traduction_df)
+# print(product_traduction_df)
 
+#creation de la colonne product_category_name_french
+create_column_query = """ALTER TABLE product_category_name_translation
+                                ADD COLUMN IF NOT EXISTS product_category_name_french TEXT;"""
+conn_pgsql_datalab.execute(create_column_query)
+
+
+
+for index, row in product_traduction_df.iterrows():
+    try:
+        print(row['product_category_name'], '  ', row['product_category_name_english'], '  ', row['product_category_name_french'])
+        if row['product_category_name_english'] is not None:
+            row['product_category_name_english'] = row['product_category_name_english'].replace("'", "''")
+        else:
+            row['product_category_name_english'] = None
+        if row['product_category_name_french'] is not None:
+            row['product_category_name_french'] = row['product_category_name_french'].replace("'", "''")
+        else:
+            row['product_category_name_french'] = None
+        update_query_trad = (f"""
+            INSERT INTO product_category_name_translation (product_category_name, product_category_name_english, product_category_name_french )
+            VALUES ('{row['product_category_name']}', '{row['product_category_name_english']}', '{row['product_category_name_french']}')
+            ON CONFLICT (product_category_name)
+            DO UPDATE SET 
+                product_category_name_french = EXCLUDED.product_category_name_french,
+                product_category_name_english = EXCLUDED.product_category_name_english;
+        """)
+        conn_pgsql_datalab.execute(update_query_trad)
+
+    except ValueError:
+        pass
